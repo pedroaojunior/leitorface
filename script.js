@@ -31,9 +31,9 @@ function mostrarResultado(texto, tipo = 'info') {
 mostrarResultado('Carregando IA...', 'info');
 
 Promise.all([
-  faceapi.nets.tinyFaceDetector.loadFromUri('./models'),
-  faceapi.nets.faceLandmark68Net.loadFromUri('./models'),
-  faceapi.nets.faceRecognitionNet.loadFromUri('./models')
+  faceapi.nets.tinyFaceDetector.loadFromUri('/leitorface/models'),
+  faceapi.nets.faceLandmark68Net.loadFromUri('/leitorface/models'),
+  faceapi.nets.faceRecognitionNet.loadFromUri('/leitorface/models')
 ])
 .then(() => {
   mostrarResultado('Pronto!', 'sucesso');
