@@ -1,0 +1,100 @@
+:root {
+  --roxo: #6C63FF;
+  --roxo-escuro: #4A44C6;
+  --fundo: #F5F7FB;
+  --card: #FFFFFF;
+  --texto: #2D3748;
+  --sucesso: #48BB78;
+  --erro: #F56565;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', 'Segoe UI', sans-serif; }
+body { background: var(--fundo); color: var(--texto); }
+
+.app { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 240px;
+  background: var(--roxo);
+  color: white;
+  padding: 30px 20px;
+}
+.sidebar h2 { margin-bottom: 30px; }
+.menu-btn {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: transparent;
+  border: none;
+  color: white;
+  text-align: left;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.menu-btn.ativo, .menu-btn:hover { background: var(--roxo-escuro); }
+
+.content { flex: 1; padding: 30px; }
+header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+.status { background: #E2E8F0; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; }
+
+.card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  max-width: 500px;
+}
+.input {
+  width: 100%;
+  padding: 14px;
+  border: 2px solid #E2E8F0;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 1rem;
+}
+.input:focus { border-color: var(--roxo); outline: none; }
+
+.camera-box {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 3px solid var(--roxo);
+}
+#video { width: 100%; display: block; }
+.overlay {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  border: 2px dashed rgba(108, 99, 255, 0.5);
+  pointer-events: none;
+}
+
+.btn-capturar {
+  width: 100%;
+  padding: 16px;
+  margin-top: 20px;
+  background: var(--roxo);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.btn-capturar:hover { background: var(--roxo-escuro); transform: translateY(-2px); }
+
+.resultado {
+  margin-top: 15px;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+}
+.resultado.sucesso { background: #C6F6D5; color: var(--sucesso); }
+.resultado.erro { background: #FED7D7; color: var(--erro); }
+
+/* Mobile */
+@media (max-width: 768px) {
+  .app { flex-direction: column; }
+  .sidebar { width: 100%; display: flex; gap: 10px; }
+  .sidebar h2 { display: none; }
+}

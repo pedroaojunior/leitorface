@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema Facial Pro</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <h2>👁️ FacePro</h2>
+      <button onclick="modo('cadastro')" id="btn-cadastro" class="menu-btn ativo">📝 Cadastro</button>
+      <button onclick="modo('reconhecer')" id="btn-reconhecer" class="menu-btn">🔍 Reconhecer</button>
+    </aside>
+
+    <main class="content">
+      <header>
+        <h1 id="titulo-modo">Modo Cadastro</h1>
+        <span id="status" class="status">Aguardando...</span>
+      </header>
+
+      <div class="card">
+        <input type="text" id="nome" placeholder="Nome completo" class="input">
+        
+        <div class="camera-box">
+          <video id="video" autoplay muted playsinline></video>
+          <div class="overlay"></div>
+        </div>
+
+        <button id="acao" class="btn-capturar">📸 Capturar</button>
+        <div id="resultado" class="resultado"></div>
+      </div>
+    </main>
+    <canvas id="canvas" style="display:none"></canvas>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
