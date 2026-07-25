@@ -28,21 +28,30 @@ function mostrarResultado(texto, tipo = 'info') {
 }
 
 // 4. Carregar IA e Iniciar Câmera
+
 mostrarResultado('Carregando IA...', 'info');
 
-Promise.all([
-  faceapi.nets.tinyFaceDetector.loadFromUri('/leitorface/models'),
-  faceapi.nets.faceLandmark68Net.loadFromUri('/leitorface/models'),
-  faceapi.nets.faceRecognitionNet.loadFromUri('/leitorface/models')
-])
-.then(() => {
-  mostrarResultado('Pronto!', 'sucesso');
-  startVideo();
-})
-.catch(err => {
-  mostrarResultado('Erro ao carregar os modelos da IA.', 'erro');
-  console.error(err);
-});
+async function iniciarSistema() {
+  try {
+    // Força o uso do modo CPU para evitar erros de WebAssembly (.wasm) no GitHub Pages
+    await faceapi.tf.setBackend('cpu');
+    await faceapi.tf.ready();
+
+    await Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri('/leitorface/models'),
+      faceapi.nets.faceLandmark68Net.loadFromUri('/leitorface/models'),
+      faceapi.nets.faceRecognitionNet.loadFromUri('/leitorface/models')
+    ]);
+
+    mostrarResultado('Pronto!', 'sucesso');
+    startVideo();
+  } catch (err) {
+    mostrarResultado('Erro ao carregar os modelos da IA.', 'erro');
+    console.error(err);
+  }
+}
+
+iniciarSistema();
 
 function startVideo() {
   // 'user' força a câmera frontal no celular
