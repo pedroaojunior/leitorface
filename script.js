@@ -27,8 +27,7 @@ function mostrarResultado(texto, tipo = 'info') {
   el.className = `resultado ${tipo}`; 
 }
 
-// 4. Carregar IA e Iniciar Câmera
-
+// 4. Carregar IA e Iniciar Câmera - ok
 mostrarResultado('Carregando IA...', 'info');
 
 async function iniciarSistema() {
@@ -63,7 +62,6 @@ function startVideo() {
       mostrarResultado('Permissão de câmera negada.', 'erro');
     });
 }
-
 // 5. Lógica de Captura e Envio para o Webhook
 document.getElementById('acao').onclick = async () => {
   mostrarResultado('Processando o rosto...', 'info');
