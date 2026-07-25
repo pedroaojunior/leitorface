@@ -62,17 +62,24 @@ function startVideo() {
       mostrarResultado('Permissão de câmera negada.', 'erro');
     });
 }
-// 5. Lógica de Captura e Envio para o Webhook
+// 5. Lógica de Captura e Envio para o Webhook ok
+
 document.getElementById('acao').onclick = async () => {
   mostrarResultado('Processando o rosto...', 'info');
 
-  // Detecta o rosto
-  const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-                                  .withFaceLandmarks()
-                                  .withFaceDescriptor();
+  // Opções ajustadas para facilitar a detecção em celulares e computadores
+  const options = new faceapi.TinyFaceDetectorOptions({ 
+    inputSize: 320,      // Tamanho menor processa mais rápido e acha melhor no celular
+    scoreThreshold: 0.4  // Reduz a exigência de rigidez (de 0.5 para 0.4), facilitando o reconhecimento
+  });
+
+  // Detecta o rosto usando as novas opções
+  const detections = await faceapi.detectSingleFace(video, options)
+                                    .withFaceLandmarks()
+                                    .withFaceDescriptor();
   
   if(!detections) {
-      return mostrarResultado("Rosto não encontrado. Olhe para a câmera.", "erro");
+      return mostrarResultado("Rosto não encontrado. Olhe bem para a câmera e ajuste a luz.", "erro");
   }
   
   // Extrai os dados
@@ -83,7 +90,7 @@ document.getElementById('acao').onclick = async () => {
   canvas.height = video.videoHeight;
   canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
   
-  // Converte para Base64 (0.8 reduz levemente a qualidade para o payload não ficar gigante)
+  // Converte para Base64
   const fotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
 
   try {
@@ -95,7 +102,7 @@ document.getElementById('acao').onclick = async () => {
       
       await fetch(WEBHOOK_URL, { 
         method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, // Obrigatório para o n8n entender os dados
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ acao: 'cadastro', nome: nome, foto: fotoBase64, embedding: embedding }) 
       });
       
@@ -117,7 +124,6 @@ document.getElementById('acao').onclick = async () => {
       if(data.nome) {
           mostrarResultado(`✅ Reconhecido: ${data.nome}`, "sucesso");
       } else {
-          // Caso o n8n devolva algo diferente indicando falha
           mostrarResultado("❌ Rosto não reconhecido.", "erro");
       }
     }
@@ -125,4 +131,4 @@ document.getElementById('acao').onclick = async () => {
     mostrarResultado("Erro ao conectar com o servidor n8n.", "erro");
     console.error(erro);
   }
-}
+};
