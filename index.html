@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistema Facial Pro</title>
   <link rel="stylesheet" href="style.css">
-  
-  <!-- Use este link oficial e atualizado do face-api.js -->
-  <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
 </head>
 <body>
   <div class="app">
@@ -37,6 +34,13 @@
     </main>
     <canvas id="canvas" style="display:none"></canvas>
   </div>
+  
+  <!-- AS MUDANÇAS ESTÃO AQUI EMBAIXO -->
+  
+  <!-- 1º PRIMEIRO: Carrega a biblioteca da Inteligência Artificial (SEM a palavra defer) -->
+  <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
+  
+  <!-- 2º SEGUNDO: Carrega o seu script logo em seguida -->
   <script src="script.js"></script>
 </body>
 </html>
