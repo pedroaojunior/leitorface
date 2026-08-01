@@ -1,46 +1,164 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema Facial Pro</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biometria Facial - n8n & Supabase</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Style CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Face API JS -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+    <!-- App JS -->
+    <script defer src="app.js"></script>
 </head>
 <body>
-  <div class="app">
-    <aside class="sidebar">
-      <h2>👁️ FacePro</h2>
-      <button onclick="modo('cadastro')" id="btn-cadastro" class="menu-btn ativo">📝 Cadastro</button>
-      <button onclick="modo('reconhecer')" id="btn-reconhecer" class="menu-btn">🔍 Reconhecer</button>
-    </aside>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-face-smile"></i>
+                </div>
+                <div>
+                    <h1>Biometria Facial AI</h1>
+                    <p class="subtitle">Integração n8n & Supabase Vector</p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <div id="aiStatusBadge" class="status-badge loading">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i>
+                    <span>Carregando Modelos AI...</span>
+                </div>
+                <button id="btnSettings" class="btn-icon" title="Configurações Webhook">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
+        </header>
 
-    <main class="content">
-      <header>
-        <h1 id="titulo-modo">Modo Cadastro</h1>
-        <span id="status" class="status">Aguardando...</span>
-      </header>
+        <!-- Modos Navigation -->
+        <nav class="mode-tabs">
+            <button id="tabRegister" class="tab-btn active" onclick="switchTab('register')">
+                <i class="fa-solid fa-user-plus"></i> Cadastrar Rosto
+            </button>
+            <button id="tabSearch" class="tab-btn" onclick="switchTab('search')">
+                <i class="fa-solid fa-magnifying-glass-location"></i> Reconhecer / Pesquisar
+            </button>
+        </nav>
 
-      <div class="card">
-        <input type="text" id="nome" placeholder="Nome completo" class="input">
-        
-        <div class="camera-box">
-          <video id="video" autoplay muted playsinline></video>
-          <div class="overlay"></div>
+        <!-- Grid Container -->
+        <main class="main-content">
+            <!-- Camera Section -->
+            <section class="camera-card">
+                <div class="camera-wrapper">
+                    <video id="videoFeed" autoplay muted playsinline></video>
+                    <canvas id="overlayCanvas"></canvas>
+                    
+                    <!-- Camera Guide Frame -->
+                    <div class="face-guide">
+                        <div class="corner top-left"></div>
+                        <div class="corner top-right"></div>
+                        <div class="corner bottom-left"></div>
+                        <div class="corner bottom-right"></div>
+                        <span id="faceDetectLabel" class="guide-label">Centralize o Rosto</span>
+                    </div>
+
+                    <!-- Floating Camera Switch Button (Mobile support) -->
+                    <button id="btnFlipCamera" class="btn-flip" title="Alternar Câmera">
+                        <i class="fa-solid fa-camera-rotate"></i>
+                    </button>
+                </div>
+
+                <div class="camera-controls">
+                    <span id="cameraStatus" class="cam-status">
+                        <i class="fa-solid fa-video"></i> Câmera Ativa
+                    </span>
+                </div>
+            </section>
+
+            <!-- Control Forms & Feedback Panel -->
+            <section class="control-card">
+                <!-- Painel Cadastro -->
+                <div id="panelRegister" class="panel active">
+                    <h2 class="panel-title"><i class="fa-solid fa-id-card"></i> Novo Cadastro Facial</h2>
+                    <p class="panel-desc">Preencha o nome da pessoa e tire a foto para registrar a biometria no Supabase via n8n.</p>
+
+                    <div class="form-group">
+                        <label for="personName">Nome Completo</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-user"></i>
+                            <input type="text" id="personName" placeholder="Ex: Maria Silva" autocomplete="off">
+                        </div>
+                    </div>
+
+                    <button id="btnRegisterFace" class="btn-primary" disabled>
+                        <i class="fa-solid fa-camera"></i> Tirar Foto & Cadastrar
+                    </button>
+                </div>
+
+                <!-- Painel Reconhecimento -->
+                <div id="panelSearch" class="panel">
+                    <h2 class="panel-title"><i class="fa-solid fa-expand"></i> Consulta Facial</h2>
+                    <p class="panel-desc">Posicione a câmera em frente ao rosto e clique para pesquisar se a pessoa está cadastrada no banco.</p>
+
+                    <button id="btnSearchFace" class="btn-success" disabled>
+                        <i class="fa-solid fa-scan"></i> Escanear & Pesquisar Rosto
+                    </button>
+                </div>
+
+                <!-- Results Output Card -->
+                <div id="resultCard" class="result-card hidden">
+                    <div class="result-header">
+                        <span id="resultIcon" class="result-icon"></span>
+                        <h3 id="resultTitle">Resultado da Consulta</h3>
+                    </div>
+                    <div class="result-body">
+                        <div id="resultPhotoContainer" class="result-photo hidden">
+                            <img id="resultPhotoImg" src="" alt="Foto Cadastrada">
+                        </div>
+                        <div class="result-details">
+                            <p id="resultMessage" class="result-msg"></p>
+                            <div id="resultMeta" class="result-meta hidden">
+                                <div class="meta-item">
+                                    <span class="label">Similaridade:</span>
+                                    <span id="metaSimilarity" class="value text-highlight">0%</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="label">Distância:</span>
+                                    <span id="metaDistance" class="value">0.000</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Webhook Settings Modal -->
+        <div id="modalSettings" class="modal-overlay hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fa-solid fa-sliders"></i> Configurações n8n</h3>
+                    <button id="btnCloseModal" class="btn-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="webhookUrl">URL do Webhook do n8n</label>
+                        <input type="url" id="webhookUrl" placeholder="https://seu-n8n.com/webhook/face-biometrics">
+                        <small class="help-text">Cole a URL do nó <strong>Webhook</strong> do seu fluxo n8n ativado.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnSaveSettings" class="btn-primary">Salvar Configuração</button>
+                </div>
+            </div>
         </div>
-
-        <button id="acao" class="btn-capturar">📸 Capturar</button>
-        <div id="resultado" class="resultado"></div>
-      </div>
-    </main>
-    <canvas id="canvas" style="display:none"></canvas>
-  </div>
-  
-  <!-- AS MUDANÇAS ESTÃO AQUI EMBAIXO -->
-  
-  <!-- 1º PRIMEIRO: Carrega a biblioteca da Inteligência Artificial (SEM a palavra defer) -->
-  <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
-  
-  <!-- 2º SEGUNDO: Carrega o seu script logo em seguida -->
-  <script src="script.js"></script>
+    </div>
 </body>
 </html>

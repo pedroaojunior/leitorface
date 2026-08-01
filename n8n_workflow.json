@@ -1,0 +1,268 @@
+{
+  "name": "Biometria Facial - Cadastro e Reconhecimento",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "face-biometrics",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        300
+      ],
+      "id": "node-webhook",
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            {
+              "name": "action",
+              "value": "={{ $json.body.action }}"
+            },
+            {
+              "name": "nome",
+              "value": "={{ $json.body.nome }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ],
+      "id": "node-parse-json",
+      "name": "Parse JSON"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action }}",
+              "value2": "cadastro"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        640,
+        200
+      ],
+      "id": "node-if-cadastro",
+      "name": "IF Cadastro"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action }}",
+              "value2": "reconhecer"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        640,
+        420
+      ],
+      "id": "node-if-reconhecer",
+      "name": "IF Reconhecer"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "table": "faces",
+        "fields": [
+          "nome",
+          "face_embedding",
+          "foto_url"
+        ],
+        "values": {
+          "string": [
+            {
+              "name": "nome",
+              "value": "={{ $('Webhook').item.json.body.nome }}"
+            },
+            {
+              "name": "face_embedding",
+              "value": "={{ JSON.stringify($('Webhook').item.json.body.face_embedding) }}"
+            },
+            {
+              "name": "foto_url",
+              "value": "={{ $('Webhook').item.json.body.foto_base64 }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        900,
+        180
+      ],
+      "id": "node-cadastro-rosto",
+      "name": "Cadastro rosto"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Rosto de \" + $('Webhook').item.json.body.nome + \" cadastrado com sucesso!\",\n  \"data\": {{ $json }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        180
+      ],
+      "id": "node-responder-cadastro",
+      "name": "Responder Webhook Cadastro"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "table": "faces",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        900,
+        420
+      ],
+      "id": "node-pegar-todos",
+      "name": "Pegar Todos"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Algoritmo de Comparacao Facial via Distancia Euclidiana\nconst webhookBody = $('Webhook').first().json.body;\nconst inputEmbedding = webhookBody.face_embedding;\nconst registeredFaces = $input.all();\n\nif (!inputEmbedding || !Array.isArray(inputEmbedding)) {\n  return [{\n    json: {\n      matchFound: false,\n      message: \"Embedding facial nao fornecido ou invalido.\"\n    }\n  }];\n}\n\nlet bestMatch = null;\nlet minDistance = 1.0;\nconst THRESHOLD = 0.55;\n\nfunction getEuclideanDistance(a, b) {\n  if (!a || !b || a.length !== b.length) return 999;\n  let sum = 0;\n  for (let i = 0; i < a.length; i++) {\n    const diff = a[i] - b[i];\n    sum += diff * diff;\n  }\n  return Math.sqrt(sum);\n}\n\nfor (const item of registeredFaces) {\n  const record = item.json;\n  let dbEmbedding = record.face_embedding;\n  if (typeof dbEmbedding === 'string') {\n    try {\n      dbEmbedding = JSON.parse(dbEmbedding);\n    } catch (e) {}\n  }\n  if (Array.isArray(dbEmbedding)) {\n    const distance = getEuclideanDistance(inputEmbedding, dbEmbedding);\n    if (distance < minDistance) {\n      minDistance = distance;\n      bestMatch = record;\n    }\n  }\n}\n\nif (bestMatch && minDistance <= THRESHOLD) {\n  const similarityPercent = Math.max(0, Math.round((1 - (minDistance / THRESHOLD)) * 100));\n  return [{\n    json: {\n      matchFound: true,\n      nome: bestMatch.nome,\n      id: bestMatch.id,\n      foto_url: bestMatch.foto_url,\n      distance: Number(minDistance.toFixed(4)),\n      similarity: similarityPercent + '%',\n      message: `Rosto reconhecido: ${bestMatch.nome}`\n    }\n  }];\n} else {\n  return [{\n    json: {\n      matchFound: false,\n      nome: null,\n      distance: Number(minDistance.toFixed(4)),\n      message: 'Rosto NAO cadastrado no sistema.'\n    }\n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        420
+      ],
+      "id": "node-comparar-face",
+      "name": "Comparar Face"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1340,
+        420
+      ],
+      "id": "node-responder-reconhecer",
+      "name": "Responder Webhook Reconhecimento"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse JSON": {
+      "main": [
+        [
+          {
+            "node": "IF Cadastro",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF Reconhecer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Cadastro": {
+      "main": [
+        [
+          {
+            "node": "Cadastro rosto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cadastro rosto": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook Cadastro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Reconhecer": {
+      "main": [
+        [
+          {
+            "node": "Pegar Todos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pegar Todos": {
+      "main": [
+        [
+          {
+            "node": "Comparar Face",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comparar Face": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook Reconhecimento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

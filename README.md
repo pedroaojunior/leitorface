@@ -1,98 +1,81 @@
-Prontinho! Aqui vai um `README.md` profissional pra você colar no seu repositório 👇
+# 🚀 Sistema de Biometria Facial (n8n + Supabase + HTML/CSS/JS)
 
-Copia tudo e cria um arquivo `README.md` na raiz do repositório.
-# 👁️ FacePro - Sistema de Reconhecimento Facial
-
-Sistema web para Cadastro e Reconhecimento Facial usando `face-api.js` + `n8n` + `Supabase`.
-Funciona 100% no navegador e no celular com HTTPS.
-
-![Demo](https://img.shields.io/badge/Status-Online-48BB78)
-![Stack](https://img.shields.io/badge/Stack-JS%20%7C%20n8n%20%7C%20Supabase-6C63FF)
+Este projeto implementa um sistema completo de **Cadastro e Reconhecimento Facial** em tempo real via Webcam ou câmera de celular.
 
 ---
 
-### **🚀 Funcionalidades**
-- **Modo Cadastro**: Captura a foto + nome e salva no Supabase Storage + Banco
-- **Modo Reconhecer**: Compara a face com o banco e retorna quem é + nível de confiança
-- **100% Responsivo**: Funciona no PC e Celular
-- **Backend No-Code**: Orquestração completa com n8n
-- **Armazenamento**: Fotos no Supabase Storage e dados no Supabase Postgres
+## 🛠️ Tecnologias Utilizadas
+
+1. **Frontend**: HTML5, CSS3 (Dark Glassmorphism), JavaScript ES6+.
+2. **AI & Biometria**: `@vladmandic/face-api` (Gera vetores numéricos `face_embedding` de 128 dimensões).
+3. **Automação Backend**: **n8n** (Fluxo de Webhook + Validação e Comparação Facial).
+4. **Banco de Dados**: **Supabase** (Tabela `faces` armazenando embeddings em JSONB).
 
 ---
 
-### **🛠️ Tecnologias Usadas**
-| Frontend | Backend | IA | Banco |
-| --- | --- | --- | --- |
-| HTML5, CSS3, JS | n8n | face-api.js | Supabase |
+## 📁 Estrutura de Arquivos
+
+```
+facial_recognition_app/
+├── index.html            # Interface Web da Câmera e Abas de Cadastro / Busca
+├── style.css             # Estilização Futurista Dark Glassmorphism
+├── app.js                # Lógica da Câmera, Face API e Requisições Webhook
+├── n8n_workflow.json     # Fluxo completo exportado pronto para importar no n8n
+├── supabase_setup.sql    # Script SQL para criar a tabela 'faces' no Supabase
+└── README.md             # Guia de Configuração e Uso
+```
 
 ---
 
-### **⚙️ Como Configurar o Backend no n8n**
-1. **Importar o Workflow**: Importe o arquivo `workflow.json` no seu n8n
-2. **Credenciais Supabase**: Configure as credenciais de `Supabase` nos nós "Salvar no Banco" e "Upload Foto"
-3. **Ativar Webhook**: No nó `Webhook`, deixe o `Response` como `Using Respond to Webhook Node` e ative o fluxo
-4. **Copiar URL**: Copie a `Webhook URL` e cole no arquivo `script.js` na variável `WEBHOOK_URL`
+## ⚙️ Passo 1: Configurar a Tabela no Supabase
 
-**Fluxo do n8n:**
-`Webhook` > `Parse JSON` > `IF Cadastro/Reconhecer` > `Supabase` > `Responder Webhook`
+1. Acesse o **Supabase Console** do seu projeto.
+2. Abra o **SQL Editor**.
+3. Copie e execute o conteúdo do arquivo [`supabase_setup.sql`](file:///C:/Users/PJR/.gemini/antigravity/scratch/facial_recognition_app/supabase_setup.sql):
 
----
-
-### **📦 Como Rodar o Frontend**
-#### Opção 1: Local
-1. Baixe esta pasta
-2. Baixe os modelos do `face-api.js` e coloque na pasta `/models`
-3. Abra com `Live Server` no VSCode
-
-#### Opção 2: Publicar Online - Recomendado
-1. Faça o Fork deste repositório
-2. Conecte com o [Vercel](https://vercel.com) ou [Netlify]
-3. Deploy automático e você ganha um link HTTPS: `https://seu-projeto.vercel.app`
-
-> **Atenção**: Para a câmera funcionar no celular é obrigatório usar HTTPS.
+```sql
+CREATE TABLE IF NOT EXISTS public.faces (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    nome VARCHAR(255) NOT NULL,
+    face_embedding JSONB NOT NULL,
+    foto_url TEXT,
+    criado_em TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+```
 
 ---
 
-### **📁 Estrutura de Pastas**
-/
-├── index.html # Página principal
-├── style.css # Estilos
-├── script.js # Lógica + Face-api + Conexão com n8n
-├── models/ # Modelos do face-api.js
-└── README.md # Este arquivo
+## ⚙️ Passo 2: Importar o Fluxo no n8n
+
+1. Abra o seu **n8n**.
+2. Clique em **Workflows** -> **Import from File**.
+3. Selecione o arquivo [`n8n_workflow.json`](file:///C:/Users/PJR/.gemini/antigravity/scratch/facial_recognition_app/n8n_workflow.json).
+4. Nos nós do **Supabase** (`Cadastro rosto` e `Pegar Todos`), selecione a sua credencial do Supabase.
+5. Clique em **Save** e ative o fluxo (**Active: ON**).
+6. Copie a URL do **Webhook** do nó inicial (ex: `http://localhost:5678/webhook/face-biometrics` ou sua URL de produção).
 
 ---
 
-### **🔑 Variáveis que você precisa trocar no `script.js`**
-```javascript
-const WEBHOOK_URL = "https://SEU-N8N.com/webhook/face"; // URL do seu webhook do n8n
+## ⚙️ Passo 3: Executar a Aplicação Web
+
+Para testar a câmera e a IA localmente:
+- Você pode abrir diretamente o arquivo [`index.html`](file:///C:/Users/PJR/.gemini/antigravity/scratch/facial_recognition_app/index.html) no navegador ou subir um servidor estático rápido:
+
+```bash
+# Opção com Python
+python -m http.server 8080
+
+# Ou com Node npx
+npx serve .
+```
+
+- Na aplicação Web, clique no ícone de **Engrenagem ⚙️** no canto superior direito e cole a URL do Webhook do n8n.
+
 ---
 
-### *📸 Demonstração*
-1. Selecione "Modo Cadastro", digite o nome e clique em Capturar
-2. Selecione "Modo Reconhecer" e clique em Capturar para identificar
+## 🔍 Como Funciona o Reconhecimento Facial
 
----
-
-### *⚠️ Limitações*
-- Precisa de boa iluminação para melhor precisão
-- Os modelos do `face-api.js` são pesados. Primeira carga pode demorar 5s
-- Precisa configurar CORS no n8n se o frontend estiver em outro domínio
-
----
-
-### *👨‍💻 Autor*
-Desenvolvido com ajuda de Meta AI
-
-Quer contribuir? Abre uma `Issue` ou `Pull Request`
-
-*Licença:* MIT
-
-### **Como usar:**
-1. No GitHub, clica em `Add file` > `Create new file`
-2. Nome: `README.md`
-3. Cola o conteúdo acima e clica em `Commit`
-
-Ele já vai aparecer bonitinho na página do seu repositório.
-
-Quer que eu já adicione uma seção com "print da tela" ou "vídeo demo" quando você publicar?
+1. O navegador carrega os modelos neurais do `face-api.js` via CDN.
+2. A câmera rastreia o rosto e extrai uma matriz de 128 números (`face_embedding`), que representa as distâncias únicas dos traços do seu rosto.
+3. No **Cadastro**: Envia o nome, foto e o vetor para o n8n -> Supabase.
+4. Na **Pesquisa**: O n8n busca todos os registros e roda um algoritmo de **Distância Euclidiana** em JavaScript. Se a distância for menor que `0.55`, considera o mesmo rosto e exibe o nome correspondente com a porcentagem de similaridade!
