@@ -45,51 +45,72 @@ document.addEventListener('DOMContentLoaded', async () => {
     await startCamera();
 });
 
-// Load Face API Models with Multi-source fallback (Local -> CDN)
+// Wait for faceapi script to be ready
+async function ensureFaceApiLoaded() {
+    let retries = 0;
+    while (typeof faceapi === 'undefined' && retries < 25) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        retries++;
+    }
+    if (typeof faceapi === 'undefined') {
+        throw new Error('Biblioteca face-api.js não foi carregada no navegador.');
+    }
+}
+
+// Load Face API Models with Multi-source Fallback
 async function loadFaceApiModels() {
     updateAiStatus('loading', 'Carregando Modelos AI...');
     console.log('Iniciando carregamento dos modelos biométricos...');
     
-    let loaded = false;
+    try {
+        await ensureFaceApiLoaded();
+    } catch (err) {
+        console.error(err);
+        updateAiStatus('loading', 'Erro no Script de IA');
+        return;
+    }
 
-    // Fontes de modelos (Local ./models, CDN oficial, CDN alternativo github)
-    const modelSources = [
-        { path: './models', tiny: true },
-        { path: 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/', tiny: false },
-        { path: 'https://raw.githubusercontent.com/vladmandic/face-api/main/model/', tiny: false }
+    const modelUrls = [
+        'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/',
+        'https://raw.githubusercontent.com/vladmandic/face-api/main/model/',
+        './models'
     ];
 
-    for (const source of modelSources) {
-        if (loaded) break;
+    let isSuccess = false;
+
+    for (const url of modelUrls) {
         try {
-            console.log(`Tentando carregar modelos de: ${source.path}`);
-            if (source.tiny) {
-                await Promise.all([
-                    faceapi.nets.tinyFaceDetector.loadFromUri(source.path),
-                    faceapi.nets.faceLandmark68TinyNet.loadFromUri(source.path),
-                    faceapi.nets.faceRecognitionNet.loadFromUri(source.path)
-                ]);
+            console.log(`Tentando carregar modelos SSD de: ${url}`);
+            await faceapi.nets.ssdMobilenetv1.loadFromUri(url);
+            await faceapi.nets.faceLandmark68Net.loadFromUri(url);
+            await faceapi.nets.faceRecognitionNet.loadFromUri(url);
+            
+            useTinyModel = false;
+            isSuccess = true;
+            console.log(`Sucesso ao carregar modelos SSD de: ${url}`);
+            break;
+        } catch (ssdErr) {
+            console.warn(`SSD falhou em ${url}, tentando Tiny...`, ssdErr);
+            try {
+                await faceapi.nets.tinyFaceDetector.loadFromUri(url);
+                await faceapi.nets.faceLandmark68TinyNet.loadFromUri(url);
+                await faceapi.nets.faceRecognitionNet.loadFromUri(url);
+                
                 useTinyModel = true;
-            } else {
-                await Promise.all([
-                    faceapi.nets.ssdMobilenetv1.loadFromUri(source.path),
-                    faceapi.nets.faceLandmark68Net.loadFromUri(source.path),
-                    faceapi.nets.faceRecognitionNet.loadFromUri(source.path)
-                ]);
-                useTinyModel = false;
+                isSuccess = true;
+                console.log(`Sucesso ao carregar modelos Tiny de: ${url}`);
+                break;
+            } catch (tinyErr) {
+                console.warn(`Tiny falhou em ${url}:`, tinyErr);
             }
-            loaded = true;
-            console.log(`Modelos AI carregados com sucesso via: ${source.path}`);
-        } catch (err) {
-            console.warn(`Falha ao carregar modelos de ${source.path}:`, err);
         }
     }
 
-    if (loaded) {
+    if (isSuccess) {
         isModelsLoaded = true;
         updateAiStatus('ready', 'AI Pronta para Biometria');
     } else {
-        console.error('Nenhuma fonte de modelos AI respondeu.');
+        console.error('Falha crítica: Nenhuma fonte de modelos respondeu.');
         updateAiStatus('loading', 'Erro ao carregar IA');
     }
 }
@@ -152,7 +173,7 @@ function startDetectionLoop() {
                     .withFaceDescriptor();
             }
         } catch (e) {
-            console.warn('Processando frame...', e);
+            // Ignorar erros pontuais de renderização de frame
         }
 
         const ctx = overlayCanvas.getContext('2d');
